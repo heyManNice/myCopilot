@@ -145,19 +145,39 @@ void RegisterAppBar(HWND hWnd,BAR_EDGE edge) {
     SHAppBarMessage(ABM_QUERYPOS, &abd);
     SHAppBarMessage(ABM_SETPOS, &abd);
 
-    //创建新线程来设置窗口位置
-    //是为了避免一个bug：
-    //在当前情况下
+    int x = workAreaRc.left,y=workAreaRc.top,
+        cx=workAreaRc.right - workAreaRc.left,
+        cy=workAreaRc.bottom - workAreaRc.top;
+    auto setPosCallback = [hWnd,x,y,cx,cy](){
+        SetWindowPos(hWnd, NULL, x, y, 
+        cx,
+        cy, NULL);
+        return;
+    };
+    //奇怪的bug：在当前情况下
     //windows似乎会干扰窗口位置的修改
     //即使APPBARDATA已被释放
     //窗口的位置有1/2的概率被移动到APPBARDATA之外
-    ExecuteWithDelay([hWnd,workAreaRc](){
-        SetWindowPos(hWnd, NULL, workAreaRc.left, workAreaRc.top, 
-        workAreaRc.right - workAreaRc.left,
-        workAreaRc.bottom - workAreaRc.top, NULL);
-        ShowWindow(hMainWin, SW_SHOW);
+    //所以在靠边设置窗口位置之后
+    //开新线程检查窗口是否在正确位置，否则重新设置
+    //检查50次后仍然失败，警告退出重试
+    ExecuteWithDelay([setPosCallback,x,y](){
+        for(int i = 0;i<50;i++){
+            RECT nowRc;
+            GetWindowRect(hMainWin, &nowRc);
+            if((nowRc.left==x)&&(nowRc.top==y)){
+                ShowWindow(hMainWin, SW_SHOW);
+                return;
+            }
+            setPosCallback();
+            Sleep(50);
+        }
+        succeeded(
+            FALSE,
+            WARNING,
+            L"设置窗口位置失败"
+        );
     }, 1);
-    
     
 }
 

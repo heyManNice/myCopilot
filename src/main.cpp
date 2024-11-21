@@ -123,7 +123,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
     case WM_HOTKEY:
-        if (wParam == 5 || wParam == 6) {
+        if (wParam == HOT_KEY1) {
             if(IsWindowVisible(hMainWin)){
                 //隐藏时先获取一下窗口现在的位置，以便恢复
                 getWindowRect();
@@ -169,18 +169,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case ID_TRAY_KEEPLEFT:
+                if(IsWindowVisible(hMainWin)&&winInfo.state==WIN_STATE::LEFT){
+                    break;
+                }
                 winInfo.state=WIN_STATE::LEFT;
                 getWindowRect();
                 removeFrame(hMainWin);
                 RegisterAppBar(hMainWin,BAR_EDGE::LEFT);
-                ShowWindow(hMainWin, SW_SHOW);
                 break;
             case ID_TRAY_KEEPRIGHT:
+                if(IsWindowVisible(hMainWin)&&winInfo.state==WIN_STATE::RIGHT){
+                    break;
+                }
                 winInfo.state=WIN_STATE::RIGHT;
                 getWindowRect();
                 removeFrame(hMainWin);
                 RegisterAppBar(hMainWin,BAR_EDGE::RIGHT);
-                ShowWindow(hMainWin, SW_SHOW);
                 break;
             case ID_TRAY_RESUME:
                 winInfo.state=WIN_STATE::SHOW;
