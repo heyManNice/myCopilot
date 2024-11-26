@@ -22,7 +22,7 @@
 #define ERROR 0
 
 //快捷键id
-#define HOT_KEY1 5
+#define HOTKEY_ID1 5
 
 //管理窗口状态的四个枚举值
 enum class WIN_STATE{

@@ -91,7 +91,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
 	UpdateWindow(hMainWin);
 
     succeeded(
-        RegisterHotKey(hMainWin, HOT_KEY1, Config::fsModifiers, Config::vk),
+        RegisterHotKey(hMainWin, HOTKEY_ID1, Config::fsModifiers, Config::vk),
         WARNING,
         fmt::format(L"设置全局快捷键{}+{}失败",Config::fsModifiers,Config::vk)
     );
@@ -110,7 +110,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
 		DispatchMessage(&msg);
 	}
     //退出事件循环后为结束应用做收尾工作
-    UnregisterHotKey(hMainWin, HOT_KEY1);
+    UnregisterHotKey(hMainWin, HOTKEY_ID1);
     SaveWindowInfo(iniFile, winInfo);
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
@@ -123,7 +123,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
     case WM_HOTKEY:
-        if (wParam == 5 || wParam == 6) {
+        if (wParam == HOTKEY_ID1) {
             if(IsWindowVisible(hMainWin)){
                 //隐藏时先获取一下窗口现在的位置，以便恢复
                 getWindowRect();
