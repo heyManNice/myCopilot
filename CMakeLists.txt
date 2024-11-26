@@ -9,7 +9,7 @@ project(Copilot)
 #webview2、simpleini、fmt
 
 #查找所需的包
-find_package(fmt CONFIG REQUIRED)
+
 find_package(unofficial-webview2 CONFIG REQUIRED)
 find_path(SIMPLEINI_INCLUDE_DIRS "ConvertUTF.c")
 
@@ -30,4 +30,3 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${SIMPLEINI_INCLUDE_DIRS})
 
 #链接所需的库：webview2、fmt
 target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::webview2::webview2)
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)

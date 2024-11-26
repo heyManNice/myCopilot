@@ -19,8 +19,8 @@
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 HINSTANCE           hInst;
 HWND                hMainWin;
-NOTIFYICONDATA      nid;
-Window_Info         winInfo;
+WINDOWSATUSINFO     winInfo;
+HMENU               hMenu;
 
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,int nCmdShow)
@@ -79,25 +79,37 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
         ERROR,
         L"创建窗口失败"
     );
-    std::wstring iniFile = Config::userDataFolder + L"/copilot.ini";
-    if(LoadWindowInfo(iniFile, winInfo)<0){
-        getWindowRect();
-        winInfo.state = WIN_STATE::SHOW;
-    }
 
-    AddTrayIcon(hMainWin,hInst);
+    NOTIFYICONDATA nid;
+    nid.cbSize = sizeof(NOTIFYICONDATA);
+    nid.hWnd = hMainWin;
+    nid.uID = ID_TRAY_EXIT;
+    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    nid.uCallbackMessage = WM_TRAYICON;
+    nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_LOGO));;
+    strcpy_s(nid.szTip, "Copilot");
+    Shell_NotifyIcon(NIM_ADD, &nid);
 
-    ShowWindow(hMainWin,nCmdShow);
-	UpdateWindow(hMainWin);
+    hMenu = CreatePopupMenu();
+    AppendMenuW(hMenu, MF_STRING, ID_TRAY_KEEPLEFT, L"靠左固定");
+    AppendMenuW(hMenu, MF_STRING, ID_TRAY_KEEPRIGHT, L"靠右固定");
+    AppendMenuW(hMenu, MF_STRING, ID_TRAY_RESUME, L"悬浮窗口");
+    AppendMenuW(hMenu, MF_STRING, ID_TRAY_HIDE, L"隐藏窗口");
+    AppendMenuW(hMenu, MF_STRING, ID_TRAY_EXIT, L"退出程序");
 
+    //设置快捷键
     succeeded(
         RegisterHotKey(hMainWin, HOTKEY_ID1, Config::fsModifiers, Config::vk),
         WARNING,
-        fmt::format(L"设置全局快捷键{}+{}失败",Config::fsModifiers,Config::vk)
+        L"设置全局快捷键失败"
     );
 
-    reapplyWindowSettings();
-
+    std::wstring iniFile = Config::userDataFolder + L"/copilot.ini";
+    if(loadWindowInfo(iniFile, winInfo)<0){
+        loadRectTo(winInfo);
+        winInfo.state = WIN_STATE::FLAOT;
+    }
+    copilotShow(winInfo.state);
     //创建webview2环境
 	CreateCoreWebView2EnvironmentWithOptions(nullptr,Config::userDataFolder.c_str() , nullptr,pCreateEnvCallback.Get());
 
@@ -109,9 +121,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+
+    
     //退出事件循环后为结束应用做收尾工作
     UnregisterHotKey(hMainWin, HOTKEY_ID1);
-    SaveWindowInfo(iniFile, winInfo);
+    saveWindowInfo(iniFile, winInfo);
+    Shell_NotifyIcon(NIM_DELETE, &nid);
+    DestroyMenu(hMenu);
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
 	return (int)msg.wParam;
@@ -122,26 +138,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
-    case WM_HOTKEY:
-        if (wParam == HOTKEY_ID1) {
-            if(IsWindowVisible(hMainWin)){
-                //隐藏时先获取一下窗口现在的位置，以便恢复
-                getWindowRect();
-                ShowWindow(hMainWin, SW_HIDE);
-                UnregisterAppBar(hMainWin);
-            }else{
-                reapplyWindowSettings();
+    case WM_ACTIVATE:
+        if(wParam != WA_INACTIVE){
+            if(webviewController != nullptr){
+                webviewController->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);
             }
         }
         break;
+    case WM_HOTKEY:
+        if (wParam == HOTKEY_ID1) {
+            //相当于单击托盘图标
+            SendMessage(hWnd, WM_TRAYICON, 0, WM_LBUTTONUP);
+        }
+        break;
     case WM_CLOSE:
-        ShowWindow(hMainWin, SW_HIDE);
+        copilotShow(WIN_STATE::HIDE);
         return 0;
 	case WM_DESTROY:
-        if(IsWindowVisible(hMainWin)){
-            getWindowRect();
-        }
-        Shell_NotifyIcon(NIM_DELETE, &nid);
 		PostQuitMessage(0);
 		break;
     case WM_SIZE:
@@ -153,49 +166,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_TRAYICON:
             if (lParam == WM_RBUTTONUP) {
-                ShowTrayMenu(hWnd);
+                POINT pt;
+                GetCursorPos(&pt);
+                SetForegroundWindow(hMainWin);
+                TrackPopupMenu(hMenu, TPM_RIGHTBUTTON|TPM_LEFTBUTTON|TPM_VERNEGANIMATION, pt.x, pt.y, 0, hMainWin, NULL);
             }
             if (lParam == WM_LBUTTONUP) {
+                if(IsIconic(hMainWin)){
+                    ShowWindow(hMainWin, SW_RESTORE);
+                    SetForegroundWindow(hMainWin);
+                }else
                 if(IsWindowVisible(hMainWin)){
-                    getWindowRect();
-                    ShowWindow(hMainWin, SW_HIDE);
-                    UnregisterAppBar(hMainWin);
+                    copilotShow(WIN_STATE::HIDE);
                 }else{
-                    reapplyWindowSettings();
+                    copilotShow(winInfo.state);
                 }
             }
             break;
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
             case ID_TRAY_EXIT:
-                DestroyWindow(hWnd);
+                loadRectTo(winInfo);
+                DestroyWindow(hMainWin);
                 break;
             case ID_TRAY_KEEPLEFT:
-                winInfo.state=WIN_STATE::LEFT;
-                getWindowRect();
-                removeFrame(hMainWin);
-                RegisterAppBar(hMainWin,BAR_EDGE::LEFT);
-                ShowWindow(hMainWin, SW_SHOW);
+                if(winInfo.state!=WIN_STATE::LEFT){
+                    winInfo.state=WIN_STATE::LEFT;
+                    copilotShow(WIN_STATE::LEFT);
+                }
                 break;
             case ID_TRAY_KEEPRIGHT:
-                winInfo.state=WIN_STATE::RIGHT;
-                getWindowRect();
-                removeFrame(hMainWin);
-                RegisterAppBar(hMainWin,BAR_EDGE::RIGHT);
-                ShowWindow(hMainWin, SW_SHOW);
+                if(winInfo.state!=WIN_STATE::RIGHT){
+                    winInfo.state=WIN_STATE::RIGHT;
+                    copilotShow(WIN_STATE::RIGHT);
+                }
                 break;
             case ID_TRAY_RESUME:
-                winInfo.state=WIN_STATE::SHOW;
-                UnregisterAppBar(hMainWin);
-                addFrame(hMainWin);
-                SetWindowPos(hWnd, NULL, winInfo.WinRect.left, winInfo.WinRect.top, 
-                winInfo.WinRect.right - winInfo.WinRect.left, winInfo.WinRect.bottom - winInfo.WinRect.top, SWP_NOZORDER);
-                ShowWindow(hMainWin, SW_SHOW);
+                winInfo.state=WIN_STATE::FLAOT;
+                copilotShow(WIN_STATE::FLAOT);
                 break;
             case ID_TRAY_HIDE:
-                getWindowRect();
-                ShowWindow(hMainWin, SW_HIDE);
-                UnregisterAppBar(hMainWin);
+                copilotShow(WIN_STATE::HIDE);
                 break;
         }
 	default:

@@ -2,12 +2,22 @@
 //此处的环境是浏览器环境
 //如果需要调试，请在config.hpp打开浏览器开发者模式
 
+
+//配置文件
+//关于相关配置的功能
+//请查看injectedScript中对应的函数
+const scriptConfig={
+    testAlert:false,
+    customizeScrollbar:true,
+    autoFocusInput:true
+}
+
 const injectedScript = {
     //测试函数
     //启用这个函数将在webview中
     //弹出信息，以便开发者观察js代码注入时机
     testAlert:function(){
-        alert("Hello Cpilot!");
+        alert("Hello Copilot!");
     },
 
     //给网页的滚动条添加样式
@@ -38,14 +48,27 @@ const injectedScript = {
             }
         `;
         document.head.appendChild(style);  
+    },
+    //当切换到Copilot窗口时键盘焦点自动转移到输入框
+    autoFocusInput:function(){
+        window.addEventListener("focus",function(){
+            let inputBox = document.querySelector('.min-h-user-input').focus();
+            inputBox && inputBox.focus();
+        })
     }
 }
 
-
-//上方是函数的定义和实现
-//下方是函数的开始
-//不想使用的功能直接注释掉
-//===============================
-
-//injectedScript.testAlert();
-injectedScript.customizeScrollbar();
+//遍历scriptConfig中的配置并执行对应函数
+for(key in scriptConfig){
+    if(!scriptConfig[key]){
+        continue;
+    }
+    let func = injectedScript[key];
+    if(!func){
+        alert(`选项${key}对应的函数未找到！`);
+        continue;
+    }
+    func();
+}
+delete scriptConfig;
+delete injectedScript;

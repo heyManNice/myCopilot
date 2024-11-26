@@ -14,9 +14,9 @@
 
 extern HWND hMainWin;
 extern NOTIFYICONDATA nid;
-extern Window_Info winInfo;
+extern WINDOWSATUSINFO winInfo;
 
-int LoadWindowInfo(std::wstring iniFile, Window_Info& info) {
+int loadWindowInfo(std::wstring iniFile, WINDOWSATUSINFO& info) {
 	CSimpleIniA ini;
 	SI_Error rc = ini.LoadFile(iniFile.c_str());
 	if (rc < 0) { return -1; };
@@ -29,7 +29,7 @@ int LoadWindowInfo(std::wstring iniFile, Window_Info& info) {
 }
 
 
-int SaveWindowInfo(std::wstring iniFile, const Window_Info& info) {
+int saveWindowInfo(std::wstring iniFile, const WINDOWSATUSINFO& info) {
 
     CSimpleIniA ini;
     TCHAR buffer[256];
@@ -52,27 +52,6 @@ int SaveWindowInfo(std::wstring iniFile, const Window_Info& info) {
 }
 
 
-void UnregisterAppBar(HWND hWnd) {
-    APPBARDATA abd;
-    abd.cbSize = sizeof(APPBARDATA);
-    abd.hWnd = hWnd;
-    SHAppBarMessage(ABM_REMOVE, &abd);
-}
-
-void removeFrame(HWND hWnd){
-    LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
-    style &= ~WS_THICKFRAME & ~WS_CAPTION;
-    SetWindowLongPtr(hWnd, GWL_STYLE, style);
-}
-
-void addFrame(HWND hWnd) {
-    LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
-    style |= WS_THICKFRAME | WS_CAPTION;
-    SetWindowLongPtr(hWnd, GWL_STYLE, style);
-    SetWindowPos(hWnd, NULL, 0, 0, 0, 0,
-                 SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-}
-
 std::wstring readAppJsResource() {
     HMODULE hModule = GetModuleHandle(NULL);
     HRSRC hResource = FindResource(hModule, MAKEINTRESOURCE(IDI_SCRIPT), RT_RCDATA);
@@ -83,109 +62,13 @@ std::wstring readAppJsResource() {
     return std::wstring(pResourceData, pResourceData + resourceSize);
 }
 
-void AddTrayIcon(HWND hWnd,HINSTANCE hInstance) {
-    nid.cbSize = sizeof(NOTIFYICONDATA);
-    nid.hWnd = hWnd;
-    nid.uID = ID_TRAY_EXIT;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    nid.uCallbackMessage = WM_TRAYICON;
-    nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_LOGO));;
-    strcpy_s(nid.szTip, "Copilot");
-
-    Shell_NotifyIcon(NIM_ADD, &nid);
-}
-
-void ShowTrayMenu(HWND hWnd) {
-    POINT pt;
-    GetCursorPos(&pt);
-
-    HMENU hMenu = CreatePopupMenu();
-    AppendMenuW(hMenu, MF_STRING, ID_TRAY_KEEPLEFT, L"靠左固定");
-    AppendMenuW(hMenu, MF_STRING, ID_TRAY_KEEPRIGHT, L"靠右固定");
-    AppendMenuW(hMenu, MF_STRING, ID_TRAY_RESUME, L"悬浮窗口");
-    AppendMenuW(hMenu, MF_STRING, ID_TRAY_HIDE, L"隐藏窗口");
-    AppendMenuW(hMenu, MF_STRING, ID_TRAY_EXIT, L"退出程序");
-
-    SetForegroundWindow(hWnd);
-    TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
-    DestroyMenu(hMenu);
-}
-
-
-void getWindowRect() {
-    LONG_PTR style = GetWindowLongPtr(hMainWin, GWL_STYLE);
-    if((style & WS_THICKFRAME) && (style & WS_CAPTION)){
-        GetWindowRect(hMainWin, &winInfo.WinRect);
+void loadRectTo(WINDOWSATUSINFO &info) {
+    if(!IsIconic(hMainWin)&&IsWindowVisible(hMainWin)&&winInfo.state==WIN_STATE::FLAOT){
+        GetWindowRect(hMainWin, &info.WinRect);
     }
 }
 
-
-void RegisterAppBar(HWND hWnd,BAR_EDGE edge) {
-    APPBARDATA abd;
-    abd.cbSize = sizeof(APPBARDATA);
-    abd.hWnd = hWnd;
-    abd.uCallbackMessage = WM_ABDMSG;
-    SHAppBarMessage(ABM_NEW, &abd);
-    RECT workAreaRc;
-    SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRc, 0);
-    switch (edge)
-    {
-    case BAR_EDGE::LEFT:
-        workAreaRc.right = workAreaRc.left + Config::dockedWindowWidth;
-        abd.uEdge = ABE_LEFT;
-        break;
-    case BAR_EDGE::RIGHT:
-        workAreaRc.left = workAreaRc.right - Config::dockedWindowWidth;
-        abd.uEdge = ABE_RIGHT;
-        break;
-    default:
-        break;
-    }
-    abd.rc = workAreaRc;
-    SHAppBarMessage(ABM_QUERYPOS, &abd);
-    SHAppBarMessage(ABM_SETPOS, &abd);
-
-    //创建新线程来设置窗口位置
-    //是为了避免一个bug：
-    //在当前情况下
-    //windows似乎会干扰窗口位置的修改
-    //即使APPBARDATA已被释放
-    //窗口的位置有1/2的概率被移动到APPBARDATA之外
-    ExecuteWithDelay([hWnd,workAreaRc](){
-        SetWindowPos(hWnd, NULL, workAreaRc.left, workAreaRc.top, 
-        workAreaRc.right - workAreaRc.left,
-        workAreaRc.bottom - workAreaRc.top, NULL);
-        ShowWindow(hMainWin, SW_SHOW);
-    }, 1);
-    
-    
-}
-
-void reapplyWindowSettings(){
-    switch (winInfo.state)
-    {
-    case WIN_STATE::LEFT:
-        removeFrame(hMainWin);
-        RegisterAppBar(hMainWin,BAR_EDGE::LEFT);
-        break;
-    case WIN_STATE::RIGHT:
-        removeFrame(hMainWin);
-        RegisterAppBar(hMainWin,BAR_EDGE::RIGHT);
-        break;
-    
-    default:
-        UnregisterAppBar(hMainWin);
-        addFrame(hMainWin);
-        SetWindowPos(hMainWin, NULL, winInfo.WinRect.left, winInfo.WinRect.top, 
-                    winInfo.WinRect.right - winInfo.WinRect.left, winInfo.WinRect.bottom - winInfo.WinRect.top, 
-                    SWP_NOZORDER);
-        ShowWindow(hMainWin, SW_SHOW);
-        break;
-    }
-}
-
-
-void ExecuteWithDelay(std::function<void()> func, int delay) {
+void setTimeout(std::function<void()> func, int delay) {
     auto threadFunc = [](void* param) -> DWORD {
         auto [func, delay] = *static_cast<std::pair<std::function<void()>, int>*>(param);
         Sleep(delay);
@@ -198,9 +81,68 @@ void ExecuteWithDelay(std::function<void()> func, int delay) {
 }
 void succeeded(BOOL result,int type,std::wstring msg){
     if(!result){
-        MessageBoxW(NULL,msg.c_str(),fmt::format(L"错误码:{}",GetLastError()).c_str(),MB_OK|(type?MB_ICONWARNING:MB_ICONERROR));
+        std::wstring errorMessage = L"错误码: " + std::to_wstring(GetLastError());
+        MessageBoxW(NULL,msg.c_str(),errorMessage.c_str(),MB_OK|(type?MB_ICONWARNING:MB_ICONERROR));
         if(type==ERROR){
             PostQuitMessage(0);
+        }
+    }
+}
+
+void copilotShow(WIN_STATE state){
+    APPBARDATA abd;
+    abd.cbSize = sizeof(APPBARDATA);
+    abd.uCallbackMessage = WM_ABDMSG;
+    abd.hWnd = hMainWin;
+    SHAppBarMessage(ABM_REMOVE, &abd);
+    switch (state)
+    {
+    case WIN_STATE::HIDE:
+        loadRectTo(winInfo);
+        ShowWindow(hMainWin, SW_HIDE);
+        break;
+    case WIN_STATE::FLAOT:{
+            int x = winInfo.WinRect.left;
+            int y = winInfo.WinRect.top;
+            int w = winInfo.WinRect.right-winInfo.WinRect.left;
+            int h = winInfo.WinRect.bottom-winInfo.WinRect.top;
+            SetWindowLongPtr(hMainWin,GWL_STYLE,WS_OVERLAPPEDWINDOW);
+            SetWindowLongPtr(hMainWin,GWL_EXSTYLE,WS_EX_OVERLAPPEDWINDOW);
+            SetWindowPos(hMainWin, HWND_NOTOPMOST, x, y, w, h,SWP_FRAMECHANGED);
+            ShowWindow(hMainWin, SW_SHOW);
+            SetForegroundWindow(hMainWin);
+            break;
+        }
+
+    default:{
+        loadRectTo(winInfo);
+        RECT workAreaRc;
+        SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRc, 0);
+        if(state==WIN_STATE::LEFT){
+            workAreaRc.right = workAreaRc.left + Config::dockedWindowWidth;
+            abd.uEdge = ABE_LEFT;
+        }else if(state==WIN_STATE::RIGHT){
+            workAreaRc.left = workAreaRc.right - Config::dockedWindowWidth;
+            abd.uEdge = ABE_RIGHT;
+        }
+        abd.rc = workAreaRc;
+        SHAppBarMessage(ABM_NEW, &abd);
+        SHAppBarMessage(ABM_QUERYPOS, &abd);
+        SHAppBarMessage(ABM_SETPOS, &abd);
+        SetWindowLongPtr(hMainWin,GWL_STYLE,WS_POPUP);
+        SetWindowLongPtr(hMainWin,GWL_EXSTYLE,WS_EX_TOOLWINDOW);
+        int x = abd.rc.left;
+        int y = abd.rc.top;
+        int w = abd.rc.right-abd.rc.left;
+        int h = abd.rc.bottom-abd.rc.top;
+        SetWindowPos(hMainWin, HWND_TOPMOST, x, y, w, h, SWP_FRAMECHANGED);
+        if(state==WIN_STATE::LEFT){
+            AnimateWindow(hMainWin, 100,AW_HOR_POSITIVE);
+        }else if(state==WIN_STATE::RIGHT){
+            AnimateWindow(hMainWin, 100,AW_HOR_NEGATIVE);
+        }
+        SetForegroundWindow(hMainWin);
+        break;
         }
     }
 }

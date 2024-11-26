@@ -28,17 +28,12 @@
 enum class WIN_STATE{
     LEFT = 1,
     RIGHT,
-    SHOW,
+    FLAOT,
     HIDE
-};
-//窗口靠边方向的枚举值
-enum class BAR_EDGE{
-    LEFT = 1,
-    RIGHT = 2
 };
 
 //保存窗口的位置大小和状态信息
-class Window_Info{
+class WINDOWSATUSINFO{
 public:
     RECT WinRect;
     WIN_STATE state;
@@ -50,42 +45,22 @@ std::wstring readAppJsResource();
 
 //从文件中获取Window_Info数据
 //失败时返回值<0;
-int LoadWindowInfo(std::wstring iniFile, Window_Info& info);
+int loadWindowInfo(std::wstring iniFile, WINDOWSATUSINFO& info);
 
 //将Window_Info数据储存到文件中
 //失败时返回值<0;
-int SaveWindowInfo(std::wstring iniFile, const Window_Info& info);
+int saveWindowInfo(std::wstring iniFile, const WINDOWSATUSINFO& info);
 
-//取消APP栏靠边区域的注册
-void UnregisterAppBar(HWND hWnd);
-
-//移除窗口的边框(标题栏、最大化最小化等按钮)
-void removeFrame(HWND hWnd);
-
-//移除窗口的边框(标题栏、最大化最小化等按钮)
-void addFrame(HWND hWnd);
-
-//添加桌面托盘图标
-void AddTrayIcon(HWND hWnd,HINSTANCE hInstance);
-
-//在右键单击托盘图标时发挥作用
-//显示右键菜单
-void ShowTrayMenu(HWND hWnd);
-
-//从当前窗口获取窗口大小和位置保存到Window_Info.RECT中
-void getWindowRect();
-
-//注册APP栏停靠区域
-void RegisterAppBar(HWND hWnd,BAR_EDGE edge);
-
-//从Window_Info中获取窗口配置，复原窗口状态
-//当窗口状态为HIDE时会被当作SHOW处理
-void reapplyWindowSettings();
+//从当前窗口获取窗口大小和位置保存到info.WinRect中
+void loadRectTo(WINDOWSATUSINFO &info);
 
 //启动一个新线程来延时处理函数，不阻塞当前线程的运行
-void ExecuteWithDelay(std::function<void()> func, int delay);
+void setTimeout(std::function<void()> func, int delay);
 
 //判断函数执行结果是否成功，失败弹出相关信息
 //当type为WARNING时，仅警告
 //当type为ERROR时，报错并退出应用程序
 void succeeded(BOOL result,int type,std::wstring msg);
+
+//控制窗口显示的函数
+void copilotShow(WIN_STATE state);
