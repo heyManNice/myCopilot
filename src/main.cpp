@@ -138,7 +138,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         ShowWindow(hMainWin, SW_HIDE);
         return 0;
 	case WM_DESTROY:
-        getWindowRect();
+        if(IsWindowVisible(hMainWin)){
+            getWindowRect();
+        }
         Shell_NotifyIcon(NIM_DELETE, &nid);
 		PostQuitMessage(0);
 		break;
