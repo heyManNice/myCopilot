@@ -52,7 +52,7 @@ const injectedScript = {
     //当切换到Copilot窗口时键盘焦点自动转移到输入框
     autoFocusInput:function(){
         window.addEventListener("focus",function(){
-            let inputBox = document.querySelector('.min-h-user-input').focus();
+            let inputBox = document.querySelector('.min-h-user-input');
             inputBox && inputBox.focus();
         })
     }
