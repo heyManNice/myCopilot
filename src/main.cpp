@@ -147,8 +147,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_HOTKEY:
         if (wParam == HOTKEY_ID1) {
-            //相当于单击托盘图标
-            SendMessage(hWnd, WM_TRAYICON, 0, WM_LBUTTONUP);
+            if((winInfo.state==WIN_STATE::FLAOT)&&IsWindowVisible(hMainWin)&&!IsIconic(hMainWin)&&(GetForegroundWindow()!=hMainWin)){
+                SetForegroundWindow(hMainWin);
+            }else{
+                //相当于单击托盘图标
+                SendMessage(hWnd, WM_TRAYICON, 0, WM_LBUTTONUP);
+            }
         }
         break;
     case WM_CLOSE:
