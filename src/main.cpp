@@ -106,9 +106,21 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
 
     std::wstring iniFile = Config::userDataFolder + L"/copilot.ini";
     if(loadWindowInfo(iniFile, winInfo)<0){
-        loadRectTo(winInfo);
+        RECT workAreaRc;
+        SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRc, 0);
+        int width = (workAreaRc.right - workAreaRc.left) / 2;
+        int height = (workAreaRc.bottom - workAreaRc.top)-400;
+        int x = workAreaRc.left + ((workAreaRc.right - workAreaRc.left) - width) / 2;
+        int y = workAreaRc.top + ((workAreaRc.bottom - workAreaRc.top) - height) / 2;
+        winInfo.WinRect.left = x;
+        winInfo.WinRect.top = y;
+        winInfo.WinRect.right = x + width;
+        winInfo.WinRect.bottom = y + height;
+
         winInfo.state = WIN_STATE::FLAOT;
     }
+    //恢复窗口退出前的位置，便于恢复靠边固定时找到的窗口所在的屏幕
+    SetWindowPos(hMainWin, NULL, winInfo.WinRect.left, winInfo.WinRect.top, winInfo.WinRect.right-winInfo.WinRect.left, winInfo.WinRect.bottom-winInfo.WinRect.top,SWP_NOZORDER);
     copilotShow(winInfo.state);
     //创建webview2环境
 	CreateCoreWebView2EnvironmentWithOptions(nullptr,Config::userDataFolder.c_str() , nullptr,pCreateEnvCallback.Get());
