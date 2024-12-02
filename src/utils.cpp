@@ -116,8 +116,12 @@ void copilotShow(WIN_STATE state){
 
     default:{
         loadRectTo(winInfo);
-        RECT workAreaRc;
-        SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRc, 0);
+        HMONITOR hMonitor = MonitorFromWindow(hMainWin, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO monitorInfo;
+        monitorInfo.cbSize = sizeof(MONITORINFO);
+        GetMonitorInfo(hMonitor, &monitorInfo);
+        RECT workAreaRc = monitorInfo.rcWork;
+        //SystemParametersInfo(SPI_GETWORKAREA, 0, &workAreaRc, 0);
         if(state==WIN_STATE::LEFT){
             workAreaRc.right = workAreaRc.left + Config::dockedWindowWidth;
             abd.uEdge = ABE_LEFT;
