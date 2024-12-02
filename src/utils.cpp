@@ -98,7 +98,6 @@ void copilotShow(WIN_STATE state){
     switch (state)
     {
     case WIN_STATE::HIDE:
-        loadRectTo(winInfo);
         ShowWindow(hMainWin, SW_HIDE);
         break;
     case WIN_STATE::FLAOT:{
@@ -115,7 +114,6 @@ void copilotShow(WIN_STATE state){
         }
 
     default:{
-        loadRectTo(winInfo);
         HMONITOR hMonitor = MonitorFromWindow(hMainWin, MONITOR_DEFAULTTONEAREST);
         MONITORINFO monitorInfo;
         monitorInfo.cbSize = sizeof(MONITORINFO);

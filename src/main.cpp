@@ -207,12 +207,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case ID_TRAY_KEEPLEFT:
                 if(winInfo.state!=WIN_STATE::LEFT){
+                    loadRectTo(winInfo);
                     winInfo.state=WIN_STATE::LEFT;
                     copilotShow(WIN_STATE::LEFT);
                 }
                 break;
             case ID_TRAY_KEEPRIGHT:
                 if(winInfo.state!=WIN_STATE::RIGHT){
+                    loadRectTo(winInfo);
                     winInfo.state=WIN_STATE::RIGHT;
                     copilotShow(WIN_STATE::RIGHT);
                 }
@@ -222,6 +224,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 copilotShow(WIN_STATE::FLAOT);
                 break;
             case ID_TRAY_HIDE:
+                loadRectTo(winInfo);
                 copilotShow(WIN_STATE::HIDE);
                 break;
         }
