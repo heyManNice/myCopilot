@@ -10,6 +10,8 @@
 #include <fmt/core.h>
 #include <fmt/xchar.h>
 
+#include <gdiplus.h>
+#pragma comment(lib, "gdiplus.lib")
 
 #include "resource.hpp"
 #include "webview.hpp"
@@ -21,6 +23,10 @@ HINSTANCE           hInst;
 HWND                hMainWin;
 WINDOWSATUSINFO     winInfo;
 HMENU               hMenu;
+std::atomic<UINT32> animationTimer;
+
+using namespace Gdiplus;
+ULONG_PTR gdiplusToken;
 
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLine,int nCmdShow)
@@ -40,6 +46,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
         return 0;
     }
     hInst = hInstance;
+    GdiplusStartupInput gdiplusStartupInput;
+    GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
     
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	
@@ -142,6 +150,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
     DestroyMenu(hMenu);
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
+    GdiplusShutdown(gdiplusToken);
 	return (int)msg.wParam;
 }
 
@@ -150,6 +159,56 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
+    case WM_CREATE:
+        setTimeout([hWnd]()->void{
+            animationTimer = 0;
+            for(UINT32 i=0;i<360;i++){
+                //延时16ms是60帧
+                Sleep(16);
+                animationTimer++;
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+            }
+        },0);
+        break;
+    case WM_PAINT:
+    {
+        static Image image(L"loadingcopilot.png");
+        UINT32 t = animationTimer;
+        RECT rc;
+        GetClientRect(hWnd, &rc);
+
+        //计算图像参数
+        INT32 centerX = (rc.left + rc.right) / 2;
+        INT32 centerY = (rc.top + rc.bottom) / 2;
+        INT32 cx = rc.right-rc.left;
+        INT32 cy = rc.bottom-rc.top;
+
+        INT32 angle = t * 4;//计算图像旋转角度
+        INT32 scale = t<7?t*t:50;
+        INT16 imgWidth = 1*scale;
+        INT16 imgHeight = 1*scale;
+
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        HDC hdcMem = CreateCompatibleDC(hdc);
+        HBITMAP hbmpMem = CreateCompatibleBitmap(hdc,cx,cy);
+        SelectObject(hdcMem, hbmpMem);
+
+        Graphics graphics(hdcMem);
+        // 绘制背景
+        graphics.FillRectangle(&SolidBrush(Color(255,250,240,231)),rc.left, rc.top, cx, cy);
+        //以窗口中心世界旋转
+        graphics.TranslateTransform(centerX, centerY);
+        graphics.RotateTransform(angle);
+        graphics.TranslateTransform(-centerX, -centerY);
+        //绘制图像
+        graphics.DrawImage(&image, centerX-imgWidth/2, centerY-imgHeight/2, imgWidth,imgHeight);
+        
+        BitBlt(hdc, 0, 0, rc.right - rc.left, rc.bottom - rc.top, hdcMem, 0, 0, SRCCOPY);
+        EndPaint(hWnd, &ps);
+        break;
+    }
     case WM_ACTIVATE:
         if(wParam != WA_INACTIVE){
             if(webviewController != nullptr){
@@ -177,7 +236,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if(webviewController != nullptr){
             RECT bounds;
             GetClientRect(hMainWin, &bounds);
-            webviewController->put_Bounds(bounds);
+            //webviewController->put_Bounds(bounds);
         }
         break;
     case WM_TRAYICON:

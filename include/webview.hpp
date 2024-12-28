@@ -58,7 +58,7 @@ Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandl
 
     wil::com_ptr<ICoreWebView2Controller2> controller2;
     if (SUCCEEDED(controller->QueryInterface(IID_PPV_ARGS(&controller2)))) {
-        COREWEBVIEW2_COLOR color = {0,0,0,0};//B,?,?,?
+        COREWEBVIEW2_COLOR color = {0,0,0,0};
         controller2->put_DefaultBackgroundColor(color);
     }
     webview->Navigate(Config::index.c_str());
@@ -68,7 +68,7 @@ Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandl
     //修改webview2大小适应窗口
     RECT bounds;
     GetClientRect(hMainWin, &bounds);
-    webviewController->put_Bounds(bounds);
+    //webviewController->put_Bounds(bounds);
     return S_OK;
 });
 
