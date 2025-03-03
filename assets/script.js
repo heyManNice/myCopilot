@@ -28,7 +28,7 @@ const injectedScript = {
         const style = document.createElement('style');
         style.textContent = `
             body {
-                background-color:#F8F4F2;
+                background-color:transparent;
             }
 
             ::-webkit-scrollbar {
