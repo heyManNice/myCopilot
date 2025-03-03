@@ -9,7 +9,8 @@
 const scriptConfig={
     testAlert:false,
     customizeScrollbar:true,
-    autoFocusInput:true
+    autoFocusInput:true,
+    setMaxWidthTo100:true,
 }
 
 const injectedScript = {
@@ -55,6 +56,16 @@ const injectedScript = {
             let inputBox = document.querySelector('.min-h-user-input');
             inputBox && inputBox.focus();
         })
+    },
+    //设置聊天页面的最大宽度为100%
+    setMaxWidthTo100:function(){
+        const style = document.createElement('style');
+        style.textContent = `
+            .max-w-chat {
+                max-width: 100% !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
 }
 
