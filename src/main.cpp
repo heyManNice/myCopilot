@@ -53,7 +53,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
 	wcex.hInstance = hInst;
 	wcex.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_LOGO));
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground = CreateSolidBrush(RGB(250,240,231));;
+    if(isDarkMode()){
+        wcex.hbrBackground = CreateSolidBrush(0x00241510);
+    }else{
+        wcex.hbrBackground = CreateSolidBrush(0x00F2F4F8);	
+    }
 	wcex.lpszMenuName = NULL;
 	wcex.lpszClassName = _T("Copilot_UniqueWindowClass");
 	wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
@@ -80,6 +84,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
         ERROR,
         L"创建窗口失败"
     );
+    updateDarkModeWithSystem(hMainWin);
 
     NOTIFYICONDATA nid;
     nid.cbSize = sizeof(NOTIFYICONDATA);
@@ -156,6 +161,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
+    case WM_SETTINGCHANGE:
+        updateDarkModeWithSystem(hWnd);
+        break;
     case WM_ACTIVATE:
         if(wParam != WA_INACTIVE){
             if(webviewController != nullptr){

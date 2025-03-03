@@ -10,6 +10,10 @@
 #include "config.hpp"
 #include <codecvt>
 
+#include <winrt/Windows.UI.ViewManagement.h>
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
+
 
 
 
@@ -162,4 +166,21 @@ std::wstring stringToWstring(const std::string& str) {
 std::string wstringToString(const std::wstring& wstr) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
     return converter.to_bytes(wstr);
+}
+
+void updateDarkModeWithSystem(HWND hWnd){
+    BOOL isDark = isDarkMode();
+    COLORREF color = 0x00F2F4F8;//浅色颜色
+    if(isDark){
+        // 深色颜色
+        color = 0x00241510;	
+    }
+    DwmSetWindowAttribute(hWnd, DWMWA_CAPTION_COLOR, &color, sizeof(color));
+    UpdateWindow(hWnd);
+}
+
+BOOL isDarkMode(){
+    auto settings = winrt::Windows::UI::ViewManagement::UISettings();
+    auto clr = settings.GetColorValue(winrt::Windows::UI::ViewManagement::UIColorType::Foreground);
+    return ((5 * clr.G) + (2 * clr.R) + clr.B) > (8 * 128);	
 }

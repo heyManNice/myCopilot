@@ -70,3 +70,10 @@ std::wstring stringToWstring(const std::string& str);
 
 //宽字符串转换为字符串
 std::string wstringToString(const std::wstring& wstr);
+
+
+//深色主题跟随系统更新
+void updateDarkModeWithSystem(HWND hWnd);
+
+//判断是否是深色主题
+BOOL isDarkMode();
