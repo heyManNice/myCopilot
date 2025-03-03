@@ -64,3 +64,9 @@ void succeeded(BOOL result,int type,std::wstring msg);
 
 //控制窗口显示的函数
 void copilotShow(WIN_STATE state);
+
+//字符串转换为宽字符串
+std::wstring stringToWstring(const std::string& str);
+
+//宽字符串转换为字符串
+std::string wstringToString(const std::wstring& wstr);

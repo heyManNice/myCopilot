@@ -7,6 +7,7 @@
 #include <tchar.h>
 
 #include "WebView2.h"
+#include "WebView2EnvironmentOptions.h"
 #include <fmt/core.h>
 #include <fmt/xchar.h>
 
@@ -122,8 +123,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,LPSTR lpCmdLin
     //恢复窗口退出前的位置，便于恢复靠边固定时找到的窗口所在的屏幕
     SetWindowPos(hMainWin, NULL, winInfo.WinRect.left, winInfo.WinRect.top, winInfo.WinRect.right-winInfo.WinRect.left, winInfo.WinRect.bottom-winInfo.WinRect.top,SWP_NOZORDER);
     copilotShow(winInfo.state);
+
+    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    if(Config::proxyServer!=L""){
+        options->put_AdditionalBrowserArguments((L"--proxy-server="+Config::proxyServer).c_str());
+    }
     //创建webview2环境
-	CreateCoreWebView2EnvironmentWithOptions(nullptr,Config::userDataFolder.c_str() , nullptr,pCreateEnvCallback.Get());
+	CreateCoreWebView2EnvironmentWithOptions(nullptr,Config::userDataFolder.c_str() , options.Get(),pCreateEnvCallback.Get());
 
 
 

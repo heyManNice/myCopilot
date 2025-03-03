@@ -8,6 +8,7 @@
 #include <fmt/core.h>
 #include <fmt/xchar.h>
 #include "config.hpp"
+#include <codecvt>
 
 
 
@@ -25,6 +26,10 @@ int loadWindowInfo(std::wstring iniFile, WINDOWSATUSINFO& info) {
     info.WinRect.right = _ttoi(ini.GetValue("Window", "Right"));
     info.WinRect.bottom = _ttoi(ini.GetValue("Window", "Bottom"));
     info.state = static_cast<WIN_STATE>(_ttoi(ini.GetValue("Window", "State")));
+    const char* proxyServerValue = ini.GetValue("ProxyServer", "server");
+    if(proxyServerValue != nullptr){
+        Config::proxyServer = stringToWstring(proxyServerValue);
+    }
     return 1;
 }
 
@@ -44,7 +49,7 @@ int saveWindowInfo(std::wstring iniFile, const WINDOWSATUSINFO& info) {
 
     _itot((int)info.state,buffer,10);
     ini.SetValue("Window", "State", buffer);
-
+    ini.SetValue("ProxyServer", "server", wstringToString(Config::proxyServer).c_str());
     SI_Error rc = ini.SaveFile(iniFile.c_str());
 	if (rc < 0) { /* handle error */ };
 
@@ -147,4 +152,14 @@ void copilotShow(WIN_STATE state){
         break;
         }
     }
+}
+
+std::wstring stringToWstring(const std::string& str) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    return converter.from_bytes(str);
+}
+
+std::string wstringToString(const std::wstring& wstr) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    return converter.to_bytes(wstr);
 }
