@@ -1,6 +1,17 @@
 # myCopilot
 # 我的副驾驶
 
+## 截图
+
+<p align="center">
+  <img src="screenshots/ai-art.png" alt="生成星空截图" width="600">
+</p>
+
+<p align="center">
+  <img src="screenshots/sidebar-usage.png" alt="侧边栏使用截图" width="600">
+</p>
+
+
 ## 介绍
 1. **背景**：在2024年11越18日，旧版Copilot in windows似乎被下架，新版Copilot界面美观，仅仅只是一个edge网页应用，缺失快捷键、靠边固定等功能。  
 2. **目标**：myCopilot由C++和Webview2构成，在新版Copilot上添加了快捷键、后台运行、靠边固定、优化样式等多种功能。
